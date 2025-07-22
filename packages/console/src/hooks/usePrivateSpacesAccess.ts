@@ -10,42 +10,43 @@ export const usePrivateSpacesAccess = () => {
   const email = account?.toEmail()
   const [isPaidUser, setIsPaidUser] = useState<boolean>(false)
   
-  // Fetch plan information
+  // Check if private spaces feature is enabled via environment variable
+  const isPrivateSpacesEnabled = process.env.NEXT_PUBLIC_PRIVATE_SPACES_ENABLED === 'true'
+  // Get allowed domains from environment variable
+  const allowedDomains = process.env.NEXT_PUBLIC_PRIVATE_SPACES_DOMAINS?.split(',') 
+  || ['dmail.ai', 'storacha.network']
+  
   useEffect(() => {
-    if (plan) {
-      console.log('Plan', plan)
+    const isStorachaUser = email?.endsWith('@storacha.network')
+    if (isStorachaUser) {
+      // Assume paid user for testing private spaces
+      setIsPaidUser(true) 
+    } else if (plan) {
+      // Check user's plan to determine if they are a paid or not
       const isPaid = plan.product !== 'did:web:starter.web3.storage' && plan.product !== 'did:web:free.web3.storage'
-      console.log('Is paid user', isPaid)
       setIsPaidUser(isPaid)
-    } else if (planError) {
-      console.log('Plan API error:', planError)
-      // Temporary fallback: if plan API is failing, assume eligible users with @storacha.network emails are paid users
-      // This is a temporary workaround for staging environment issues
-      const isStorachaUser = email?.endsWith('@storacha.network')
-      if (isStorachaUser) {
-        console.log('Plan API failing but user is @storacha.network, assuming paid user for testing')
-        setIsPaidUser(true)
-      }
+    } else {
+       // Set as free plan by default
+      setIsPaidUser(false)
     }
   }, [plan, planError, email])
   
-  const isDmailUser = email?.endsWith('@dmail.ai')
-  const isStorachaUser = email?.endsWith('@storacha.network')
-  const isEligibleDomain = isDmailUser || isStorachaUser
-  
-  // Debug logging
-  console.log('=== Private Spaces Access Debug ===')
-  console.log('Email:', email)
-  console.log('Plan:', plan)
-  console.log('Plan Error:', planError)
-  console.log('isDmailUser:', isDmailUser)
-  console.log('isStorachaUser:', isStorachaUser)
-  console.log('isEligibleDomain:', isEligibleDomain)
-  console.log('isPaidUser:', isPaidUser)
-  console.log('canAccessPrivateSpaces:', isEligibleDomain && isPaidUser)
-  console.log('shouldShowUpgradePrompt:', isEligibleDomain && !isPaidUser)
-  console.log('===================================')
-  
+  // If private spaces feature is disabled, return values that hide all private spaces functionality
+  if (!isPrivateSpacesEnabled) {
+    return {
+      canAccessPrivateSpaces: false,
+      shouldShowUpgradePrompt: false,
+      shouldShowPrivateSpacesTab: false,
+      isEligibleDomain: false,
+      isPaidUser,
+      email,
+      plan,
+      planLoading: !plan && !planError
+    }
+  }
+
+  // Check if user's email domain is in the allowed domains list
+  const isEligibleDomain = allowedDomains.some(domain => email?.endsWith(`@${domain}`))
   return {
     canAccessPrivateSpaces: isEligibleDomain && isPaidUser,
     shouldShowUpgradePrompt: isEligibleDomain && !isPaidUser,

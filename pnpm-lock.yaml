@@ -735,6 +735,9 @@ importers:
       '@storacha/did-mailto':
         specifier: workspace:^
         version: link:../did-mailto
+      '@storacha/encrypt-upload-client':
+        specifier: workspace:^
+        version: link:../encrypt-upload-client
       '@storacha/ui-react':
         specifier: workspace:^
         version: link:../ui/packages/react

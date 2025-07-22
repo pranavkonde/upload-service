@@ -10,6 +10,7 @@ import { Wallet } from 'ethers'
 import { serviceConf, receiptsEndpoint } from '../src/config/service.js'
 import { createNodeLitAdapter } from '../src/crypto/factories.node.js'
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
+import { extract } from '@ucanto/core/delegation'
 
 dotenv.config()
 
@@ -44,11 +45,26 @@ async function main() {
     cryptoAdapter: createNodeLitAdapter(litClient),
   })
 
-  const decryptionOptions = { wallet }
+  const res = await extract(delegationCarBuffer)
+  if (res.error) {
+    throw new Error(`Failed to extract delegation: ${res.error.message}`)
+  }
+  const decryptDelegation = res.ok
+  const decryptionCapability = decryptDelegation.capabilities.find(c => c.can === 'space/content/decrypt')
+  if (!decryptionCapability) {
+    throw new Error('Failed to find decryption capability')
+  }
+  
+  const spaceDID = /** @type {`did:key:${string}`} */(decryptionCapability.with)
+  
+  const decryptionConfig = { 
+    wallet, 
+    decryptDelegation, 
+    spaceDID 
+  }
   const decryptedContent = await encryptedClient.retrieveAndDecryptFile(
     cid,
-    delegationCarBuffer,
-    decryptionOptions
+    decryptionConfig
   )
 
   const reader = decryptedContent.getReader()

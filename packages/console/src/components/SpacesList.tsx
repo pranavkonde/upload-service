@@ -50,13 +50,6 @@ function SpaceItem({ space, type }: SpaceItemProps) {
           <span className="font-epilogue text-lg text-hot-red leading-5 m-0">
             {space.name || 'Untitled'}
           </span>
-          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-            type === 'private'
-              ? 'bg-hot-red text-white'
-              : 'bg-blue-500 text-white'
-          }`}>
-            {type === 'private' ? 'Private' : 'Public'}
-          </span>
         </div>
         <span className="font-mono text-xs block">
           {space.did()}

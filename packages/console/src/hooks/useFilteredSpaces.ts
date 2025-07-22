@@ -4,12 +4,10 @@ import { usePrivateSpacesAccess } from './usePrivateSpacesAccess'
 export const useFilteredSpaces = () => {
   const [{ spaces }] = useW3()
   const { canAccessPrivateSpaces } = usePrivateSpacesAccess()
-  // Filter spaces based on accessType
-  // Note: accessType might not be available yet until backend is updated
-  const allPublicSpaces = spaces.filter(s => s.access.type !== 'private')
+  const allPublicSpaces = spaces.filter(s => s.access.type === 'public')
   const allPrivateSpaces = spaces.filter(s => s.access.type === 'private')
   // Hide but preserve: private spaces are hidden when user loses access
-  // but they're still in the backend and will reappear if user upgrades
+  // but they're still in the backend and will reappear if user upgrades to paid plan
   const visiblePrivateSpaces = canAccessPrivateSpaces ? allPrivateSpaces : []
   const hiddenPrivateSpaces = canAccessPrivateSpaces ? [] : allPrivateSpaces
   return {

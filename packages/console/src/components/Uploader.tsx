@@ -138,10 +138,25 @@ interface UploaderFormProps {
 }
 
 const UploaderForm = ({ space }: UploaderFormProps): JSX.Element => {
-  const [{ file }, { setUploadAsCAR }] = useUploader()
+  const [{ file }, { setUploadAsCAR, setKmsConfig }] = useUploader()
   const [allowDirectory, setAllowDirectory] = useState(false)
   const [uploadType, setUploadType] = useState(UploadType.File)
   const isPrivateSpace = space?.access?.type === 'private'
+  useEffect(() => {
+    if (isPrivateSpace) {
+      // For now we load the KMS config from environment variables,
+      // but in the future we can allow the user to configure it via UI
+      // and store it in the space metadata, and load it from there
+      setKmsConfig({
+        keyManagerServiceURL: process.env.NEXT_PUBLIC_UCAN_KMS_URL as string,
+        keyManagerServiceDID: process.env.NEXT_PUBLIC_UCAN_KMS_DID as string,
+        location: process.env.NEXT_PUBLIC_UCAN_KMS_LOCATION as string,
+        keyring: process.env.NEXT_PUBLIC_UCAN_KMS_KEYRING as string,
+        allowInsecureHttp: process.env.NEXT_PUBLIC_UCAN_KMS_ALLOW_INSECURE_HTTP as string === 'true'
+      })
+    }
+  }, [isPrivateSpace, setKmsConfig])
+
   function changeUploadType (type: UploadType) {
     if (type === UploadType.File) {
       setUploadAsCAR(false)

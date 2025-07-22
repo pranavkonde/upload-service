@@ -32,6 +32,7 @@
     "@web3-storage/data-segment": "catalog:",
     "@storacha/did-mailto": "workspace:^",
     "@storacha/client": "workspace:^",
+    "@storacha/encrypt-upload-client": "workspace:^",
     "archy": "^1.0.0",
     "ariakit-utils": "catalog:",
     "blueimp-md5": "^2.19.0",

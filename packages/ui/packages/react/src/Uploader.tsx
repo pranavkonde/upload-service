@@ -19,8 +19,8 @@ import React, {
 import { createComponent, createElement } from 'ariakit-react-utils'
 import { useW3 } from './providers/Provider.js'
 import { create as createEncryptedClient } from '@storacha/encrypt-upload-client'
-import { createGenericKMSAdapter } from '@storacha/encrypt-upload-client/factories.browser'
 import { EncryptionConfig, EncryptionStrategy } from '@storacha/encrypt-upload-client/types'
+import { useKMSConfig, type KMSConfig } from './hooks.js'
 
 export type UploadProgress = Record<string, ProgressStatus>
 
@@ -30,12 +30,7 @@ export enum UploadStatus {
   Failed = 'failed',
   Succeeded = 'succeeded',
 }
-export interface KMSConfig {
-  keyManagerServiceURL: string
-  keyManagerServiceDID: string
-  location?: string
-  keyring?: string
-}
+
 export interface UploaderContextState {
   /**
    * A string indicating the status of this component - can be 'uploading', 'done' or ''.
@@ -211,7 +206,7 @@ export const UploaderRoot: Component<UploaderRootProps> = createComponent(
     )
     const [uploadAsCAR, setUploadAsCAR] = useState(defaultUploadAsCAR)
     const [encryptionStrategy, setEncryptionStrategy] = useState<EncryptionStrategy>(defaultEncryptionStrategy)
-    const [kmsConfigState, setKmsConfig] = useState<KMSConfig | undefined>(kmsConfig)
+    const { kmsConfig: kmsConfigState, setKmsConfig, createKMSAdapter } = useKMSConfig(kmsConfig)
     const [dataCID, setDataCID] = useState<AnyLink>()
     const [status, setStatus] = useState(UploadStatus.Idle)
     const [error, setError] = useState<Error>()
@@ -260,12 +255,12 @@ export const UploaderRoot: Component<UploaderRootProps> = createComponent(
 
         let cryptoAdapter
         if (spaceAccess.encryption.provider === 'google-kms') {
-          // Use KMS strategy with config from space metadata
+          // Use KMS strategy with config from shared hook
           setEncryptionStrategy('kms')
-          cryptoAdapter = createGenericKMSAdapter(
-            kmsConfigState?.keyManagerServiceURL ?? 'https://kms.storacha.network',
-            kmsConfigState?.keyManagerServiceDID ?? 'did:web:kms.storacha.network'
-          )
+          cryptoAdapter = await createKMSAdapter()
+          if (!cryptoAdapter) {
+            throw new Error('KMS configuration required for encrypted uploads')
+          }
         }
         // else if - add other providers here...
 
@@ -279,9 +274,11 @@ export const UploaderRoot: Component<UploaderRootProps> = createComponent(
         })
 
         // Prepare encryption config
+        const proofs = await client.agent.proofs([{ can: "space/encryption/setup", with: space.did() }]) // Agent needs to have access to the space
         const encryptionConfig: EncryptionConfig = {
           issuer: client.agent.issuer,
           spaceDID: space.did(),
+          proofs,
           ...(kmsConfigState?.location && encryptionStrategy === 'kms' && { location: kmsConfigState?.location }),
           ...(kmsConfigState?.keyring && encryptionStrategy === 'kms' && { keyring: kmsConfigState?.keyring }),
         }

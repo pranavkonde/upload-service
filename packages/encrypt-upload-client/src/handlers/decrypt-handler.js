@@ -13,8 +13,7 @@ import * as Type from '../types.js'
  * encryption and decryption operations.
  * @param {URL} gatewayURL - The IPFS gateway URL
  * @param {Type.AnyLink} cid - The link to the file to retrieve
- * @param {Uint8Array} delegationCAR - The delegation that gives permission to decrypt (required for both strategies)
- * @param {Type.DecryptionOptions} decryptionOptions - User-provided decryption options
+ * @param {Type.DecryptionConfig} decryptionConfig - User-provided decryption config
  * @returns {Promise<ReadableStream>} The decrypted file stream
  */
 export const retrieveAndDecrypt = async (
@@ -22,8 +21,7 @@ export const retrieveAndDecrypt = async (
   cryptoAdapter,
   gatewayURL,
   cid,
-  delegationCAR,
-  decryptionOptions
+  decryptionConfig
 ) => {
   // Step 1: Get the encrypted metadata from the public gateway
   const encryptedMetadataCar = await getCarFileFromPublicGateway(
@@ -45,9 +43,8 @@ export const retrieveAndDecrypt = async (
   const { key, iv } = await cryptoAdapter.decryptSymmetricKey(
     encryptedSymmetricKey,
     {
-      decryptionOptions,
+      decryptionConfig,
       metadata,
-      delegationCAR,
       resourceCID: cid,
       issuer: storachaClient.agent.issuer,
       audience: storachaClient.defaultProvider(),
