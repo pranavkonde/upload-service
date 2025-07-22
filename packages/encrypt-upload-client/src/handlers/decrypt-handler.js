@@ -62,15 +62,47 @@ export const retrieveAndDecrypt = async (
  * encryption and decryption operations.
  * @param {Uint8Array} key - The symmetric key
  * @param {Uint8Array} iv - The initialization vector
- * @param {Uint8Array} content - The encrypted file content
+ * @param {AsyncIterable<Uint8Array>|Uint8Array} content - The encrypted file content
  * @returns {Promise<ReadableStream>} The decrypted file stream
  */
 export function decryptFileWithKey(cryptoAdapter, key, iv, content) {
+  // Convert content to ReadableStream with true on-demand streaming
+  /** @type {AsyncIterator<Uint8Array> | null} */
+  let iterator = null
   const contentStream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(content)
-      controller.close()
+    start() {
+      // Initialize iterator for async iterable (no memory loading here)
+      if (!(content instanceof Uint8Array)) {
+        iterator = content[Symbol.asyncIterator]()
+      }
     },
+    async pull(controller) {
+      try {
+        if (content instanceof Uint8Array) {
+          // Handle single Uint8Array (legacy case)
+          controller.enqueue(content)
+          controller.close()
+        } else if (iterator) {
+          // Handle async iterable - get next chunk on-demand
+          const { value, done } = await iterator.next()
+          if (done) {
+            controller.close()
+          } else {
+            controller.enqueue(value) // Only load one chunk at a time
+          }
+        } else {
+          controller.close()
+        }
+      } catch (error) {
+        controller.error(error)
+      }
+    },
+    cancel() {
+      // Clean up iterator if stream is cancelled
+      if (iterator && typeof iterator.return === 'function') {
+        iterator.return()
+      }
+    }
   })
 
   const decryptedStream = cryptoAdapter.decryptStream(contentStream, key, iv)
@@ -149,6 +181,6 @@ const getEncryptedDataFromCar = async (car, encryptedDataCID) => {
     blockstore
   )
 
-  // Step 5: Return the async iterable (stream of chunks)
-  return encryptedDataEntry.content() // async iterable of Uint8Array
+  // Step 5: Return the async iterable for streaming
+  return encryptedDataEntry.content()
 }

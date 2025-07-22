@@ -4,6 +4,7 @@ import type { Space, UnknownLink } from '@storacha/ui-react'
 import { parse as parseLink } from 'multiformats/link'
 import { create as createEncryptedClient } from '@storacha/encrypt-upload-client'
 import { useKMSConfig } from '@storacha/ui-react'
+import { decrypt } from '@storacha/capabilities/space'
 
 interface DecryptionState {
   loading: boolean
@@ -68,36 +69,42 @@ export const useFileDecryption = (space?: Space) => {
 
       // Parse CID if it's a string
       const encryptionMetadataCID = typeof cid === 'string' ? parseLink(cid) : cid
-
       const proofs = client.proofs([
         {
-          can: 'space/*',
+          can: 'space/content/decrypt',
           with: space.did()
         }
       ])
-
-      // Generate a decryption delegation on the fly for the agent (agent already has space/* capability)
-      const decryptDelegation = await client.createDelegation(
-        client.agent.issuer, // delegate to self for decryption
-        // @ts-expect-error TODO: include the space/content/decrypt to the API for type inference
-        ['space/content/decrypt'], // Use space/* which includes space/content/decrypt
-        {
-          expiration: Math.floor(Date.now() / 1000) + 60 * 15, // 15 minutes
-          proofs,
+      .map(proof => /* @type {import('@ucanto/interface').Delegation} */ (proof))
+      .filter(delegation => !delegation.capabilities.some(cap => cap.can === '*' || 
+          cap.can === 'ucan/attest' ||
+          cap.with === 'ucan:*'))
+      console.log('Proofs:', proofs.map((proof, index) => {
+        console.log('Issuer:', proof.issuer.did())
+        console.log('Audience:', proof.audience.did())
+        console.log(`Proof ${index}:`, proof.capabilities)
+        return proof.capabilities
+      }))
+     
+      console.log('Generating decryption delegation on the fly')
+      const decryptDelegation = await decrypt.delegate({
+        issuer: client.agent.issuer,
+        audience: client.agent.issuer,
+        with: space.did(),
+        nb: {
+          resource: encryptionMetadataCID,
         },
-      )
-      
-      const delegationCAR = await decryptDelegation.archive()
-      if (delegationCAR.error) {
-        throw new Error(`Failed to create delegation: ${delegationCAR.error.message}`)
-      }
+        expiration: Math.floor(Date.now() / 1000) + 60 * 15, // 15 minutes
+        proofs,
+      })
 
       // Downloads the encrypted file, and decrypts it locally
       const decryptedStream = await encryptedClient.retrieveAndDecryptFile(
         encryptionMetadataCID,
         {
           spaceDID: space.did(),
-          decryptDelegation,  
+          decryptDelegation, 
+          proofs,
         }
       )
 

@@ -140,6 +140,7 @@ export class KMSCryptoAdapter {
       encryptedKey,
       spaceDID,
       decryptDelegation,
+      configs.decryptionConfig.proofs || [],
       issuer
     )
 
@@ -153,14 +154,16 @@ export class KMSCryptoAdapter {
    *
    * @param {string} encryptedSymmetricKey - The encrypted symmetric key (base64-encoded)
    * @param {Type.SpaceDID} spaceDID - The space DID
-   * @param {import('@ucanto/interface').Proof} delegationProof - The delegation proof
+   * @param {import('@ucanto/interface').Proof} decryptionProof - The decryption delegation proof
+   * @param {import('@ucanto/interface').Proof[]} proofs - The proofs to access the space
    * @param {import('@storacha/client/types').Signer<import('@storacha/client/types').DID, import('@storacha/client/types').SigAlg>} issuer - The issuer
    * @returns {Promise<{decryptedSymmetricKey: string}>} - The decrypted symmetric key (base64-encoded)
    */
   async getDecryptedSymmetricKey(
     encryptedSymmetricKey,
     spaceDID,
-    delegationProof,
+    decryptionProof,
+    proofs,
     issuer
   ) {
     // Step 1: Invoke the KeyDecrypt capability passing the decryption proof
@@ -171,7 +174,7 @@ export class KMSCryptoAdapter {
       nb: {
         key: base64.decode(encryptedSymmetricKey), // Convert base64 string to bytes
       },
-      proofs: [delegationProof],
+      proofs: proofs ? [...proofs, decryptionProof] : [decryptionProof],
     }).execute(this.newKeyManagerServiceConnection())
 
     // Step 2: Handle the result
@@ -181,7 +184,7 @@ export class KMSCryptoAdapter {
       throw new Error(errorMessage)
     }
 
-    // Step 3: Return the base64-encoded decrypted key from the gateway response
+    // Step 3: Return the multibase-encoded decrypted key from the gateway response
     return /** @type {{decryptedSymmetricKey: string}} */ (result.out.ok)
   }
 

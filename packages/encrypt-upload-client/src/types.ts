@@ -130,6 +130,10 @@ export interface DecryptionConfig {
   // General decryption
   decryptDelegation: Proof
   spaceDID: SpaceDID
+  /**
+   * Proofs to access the space
+   */
+  proofs?: Proof[]
   // User-provided options
   // Lit-specific (signer information)
   wallet?: Wallet

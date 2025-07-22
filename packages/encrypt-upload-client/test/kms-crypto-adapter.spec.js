@@ -256,9 +256,10 @@ await describe('KMSCryptoAdapter', async () => {
         assert(typeof encryptResult.encryptedKey === 'string')
 
         // Test key decryption - this will call the mock decrypt
-        const decryptionOptions = {
+        const decryptionConfig = {
           spaceDID,
-          delegationProof,
+          decryptDelegation: delegationProof,
+          proofs: [],
         }
 
         const mockMetadata = {
@@ -269,21 +270,18 @@ await describe('KMSCryptoAdapter', async () => {
           kms: kmsMetadata.kms,
         }
 
-        const decryptConfigs = {
-          decryptionOptions,
-          metadata: mockMetadata,
-          delegationCAR: new Uint8Array(),
-          resourceCID:
-            /** @type {import('@storacha/upload-client/types').AnyLink} */ (
-              /** @type {any} */ ('bafybeid')
-            ),
-          issuer,
-          audience: keyManagerServiceDID.did(),
-        }
-
         const decryptResult = await adapter.decryptSymmetricKey(
           encryptResult.encryptedKey,
-          decryptConfigs
+          {
+            decryptionConfig,
+            metadata: mockMetadata,
+            resourceCID:
+              /** @type {import('@storacha/upload-client/types').AnyLink} */ (
+                /** @type {any} */ ('bafybeid')
+              ),
+            issuer,
+            audience: keyManagerServiceDID.did(),
+          }
         )
 
         // Verify the round-trip worked
