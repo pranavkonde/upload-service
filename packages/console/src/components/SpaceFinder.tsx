@@ -5,6 +5,7 @@ import { Combobox, Transition } from '@headlessui/react'
 import { ChevronUpDownIcon } from '@heroicons/react/20/solid'
 import { LockClosedIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 import { shortenDID } from '@/lib'
+import { useFeatureFlags } from '@/lib/featureFlags'
 
 interface SpaceFinderProps {
   spaces: Space[]
@@ -20,6 +21,7 @@ export function SpaceFinder ({
   className = ''
 }: SpaceFinderProps): JSX.Element {
   const [query, setQuery] = useState('')
+  const { canSeePrivateSpacesFeature } = useFeatureFlags()
 
   // First filter by query, then categorize and sort
   const filteredSpaces = query === ''
@@ -40,13 +42,16 @@ export function SpaceFinder ({
       return nameA.localeCompare(nameB)
     })
 
-  const privateSpaces = filteredSpaces
-    .filter(space => space.access?.type === 'private')
-    .sort((a, b) => {
-      const nameA = (a.name || shortenDID(a.did())).toLowerCase()
-      const nameB = (b.name || shortenDID(b.did())).toLowerCase()
-      return nameA.localeCompare(nameB)
-    })
+  // Only show private spaces if feature is enabled and user has access
+  const privateSpaces = canSeePrivateSpacesFeature 
+    ? filteredSpaces
+        .filter(space => space.access?.type === 'private')
+        .sort((a, b) => {
+          const nameA = (a.name || shortenDID(a.did())).toLowerCase()
+          const nameB = (b.name || shortenDID(b.did())).toLowerCase()
+          return nameA.localeCompare(nameB)
+        })
+    : []
 
   const hasResults = publicSpaces.length > 0 || privateSpaces.length > 0
 
@@ -140,7 +145,7 @@ export function SpaceFinder ({
                       )}
 
                       {/* Private Spaces Section */}
-                      {privateSpaces.length > 0 && (
+                      {canSeePrivateSpacesFeature && privateSpaces.length > 0 && (
                         <>
                           <div className='px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-red-50 border-b border-gray-100'>
                             <div className='flex items-center gap-2'>
