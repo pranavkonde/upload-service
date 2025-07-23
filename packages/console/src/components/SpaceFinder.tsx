@@ -85,7 +85,7 @@ export function SpaceFinder ({
               {!hasResults && query !== ''
                 ? (
                 <div className='relative select-non py-2 px-4 font-mono text-sm text-red-500'>
-                  (╯°□°)╯︵ ┻━┻
+                  No results found
                 </div>
                   )
                 : (
