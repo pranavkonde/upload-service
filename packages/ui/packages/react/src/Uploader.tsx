@@ -19,7 +19,7 @@ import React, {
 import { createComponent, createElement } from 'ariakit-react-utils'
 import { useW3 } from './providers/Provider.js'
 import { create as createEncryptedClient } from '@storacha/encrypt-upload-client'
-import { EncryptionConfig, EncryptionStrategy } from '@storacha/encrypt-upload-client/types'
+import { EncryptionConfig, EncryptionStrategy, FileMetadata } from '@storacha/encrypt-upload-client/types'
 import { useKMSConfig, type KMSConfig } from './hooks.js'
 
 export type UploadProgress = Record<string, ProgressStatus>
@@ -237,6 +237,16 @@ export const UploaderRoot: Component<UploaderRootProps> = createComponent(
         return
       }
 
+      // Add utility function to extract metadata from File object
+      const extractFileMetadata = (file: File): FileMetadata => {
+        const name = file.name || 'unknown'
+        const type = file.type || 'application/octet-stream'
+        const lastDotIndex = name.lastIndexOf('.')
+        const extension = lastDotIndex !== -1 ? name.substring(lastDotIndex + 1) : ''
+
+        return { name, type, extension }
+      }
+
       const doEncryptedUpload = async (
         uploadOptions: UploadOptions,
       ): Promise<AnyLink> => {
@@ -273,12 +283,16 @@ export const UploaderRoot: Component<UploaderRootProps> = createComponent(
           cryptoAdapter,
         })
 
+        // Extract file metadata
+        const fileMetadata = extractFileMetadata(file)
+
         // Prepare encryption config
         const proofs = await client.agent.proofs([{ can: "space/encryption/setup", with: space.did() }]) // Agent needs to have access to the space
         const encryptionConfig: EncryptionConfig = {
           issuer: client.agent.issuer,
           spaceDID: space.did(),
           proofs,
+          fileMetadata,
           ...(kmsConfigState?.location && encryptionStrategy === 'kms' && { location: kmsConfigState?.location }),
           ...(kmsConfigState?.keyring && encryptionStrategy === 'kms' && { keyring: kmsConfigState?.keyring }),
         }

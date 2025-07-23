@@ -4,6 +4,7 @@ import { exporter } from 'ipfs-unixfs-exporter'
 import { MemoryBlockstore } from 'blockstore-core'
 
 import * as Type from '../types.js'
+import { extractFileMetadata } from '../utils/file-metadata.js'
 
 /**
  * Retrieve and decrypt a file from the IPFS gateway using any supported encryption strategy.
@@ -14,7 +15,7 @@ import * as Type from '../types.js'
  * @param {URL} gatewayURL - The IPFS gateway URL
  * @param {Type.AnyLink} cid - The link to the file to retrieve
  * @param {Type.DecryptionConfig} decryptionConfig - User-provided decryption config
- * @returns {Promise<ReadableStream>} The decrypted file stream
+ * @returns {Promise<Type.DecryptionResult>} The decrypted file stream with metadata
  */
 export const retrieveAndDecrypt = async (
   storachaClient,
@@ -52,7 +53,22 @@ export const retrieveAndDecrypt = async (
   )
 
   // Step 5: Decrypt the encrypted file content using the decrypted symmetric key and IV
-  return decryptFileWithKey(cryptoAdapter, key, iv, encryptedData)
+  const decryptedStreamWithMetadata = await decryptFileWithKey(
+    cryptoAdapter,
+    key,
+    iv,
+    encryptedData
+  )
+
+  // Step 6: Extract file content and metadata
+  const { fileStream, fileMetadata } = await extractFileMetadata(
+    decryptedStreamWithMetadata
+  )
+
+  return {
+    stream: fileStream,
+    fileMetadata,
+  }
 }
 
 /**
@@ -65,7 +81,7 @@ export const retrieveAndDecrypt = async (
  * @param {AsyncIterable<Uint8Array>|Uint8Array} content - The encrypted file content
  * @returns {Promise<ReadableStream>} The decrypted file stream
  */
-export function decryptFileWithKey(cryptoAdapter, key, iv, content) {
+export async function decryptFileWithKey(cryptoAdapter, key, iv, content) {
   // Convert content to ReadableStream with true on-demand streaming
   /** @type {AsyncIterator<Uint8Array> | null} */
   let iterator = null
@@ -100,12 +116,16 @@ export function decryptFileWithKey(cryptoAdapter, key, iv, content) {
     cancel() {
       // Clean up iterator if stream is cancelled
       if (iterator && typeof iterator.return === 'function') {
-        iterator.return()
+        void iterator.return()
       }
-    }
+    },
   })
 
-  const decryptedStream = cryptoAdapter.decryptStream(contentStream, key, iv)
+  const decryptedStream = await cryptoAdapter.decryptStream(
+    contentStream,
+    key,
+    iv
+  )
 
   return decryptedStream
 }

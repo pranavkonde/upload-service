@@ -174,7 +174,6 @@ export class GenericAesCtrStreamingCrypto {
               chunk
             )
           )
-
           controller.enqueue(decrypted)
         } catch (error) {
           controller.error(error)

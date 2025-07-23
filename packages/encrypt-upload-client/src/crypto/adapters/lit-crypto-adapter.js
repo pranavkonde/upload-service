@@ -100,13 +100,8 @@ export class LitCryptoAdapter {
    * @returns {Promise<{ key: Uint8Array, iv: Uint8Array }>} - The decrypted key and IV
    */
   async decryptSymmetricKey(encryptedKey, configs) {
-    const {
-      decryptionConfig,
-      metadata,
-      resourceCID,
-      issuer,
-      audience,
-    } = configs
+    const { decryptionConfig, metadata, resourceCID, issuer, audience } =
+      configs
 
     // Validate Lit metadata
     if (metadata.strategy !== 'lit') {

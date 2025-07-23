@@ -50,24 +50,28 @@ async function main() {
     throw new Error(`Failed to extract delegation: ${res.error.message}`)
   }
   const decryptDelegation = res.ok
-  const decryptionCapability = decryptDelegation.capabilities.find(c => c.can === 'space/content/decrypt')
+  const decryptionCapability = decryptDelegation.capabilities.find(
+    (c) => c.can === 'space/content/decrypt'
+  )
   if (!decryptionCapability) {
     throw new Error('Failed to find decryption capability')
   }
-  
-  const spaceDID = /** @type {`did:key:${string}`} */(decryptionCapability.with)
-  
-  const decryptionConfig = { 
-    wallet, 
-    decryptDelegation, 
-    spaceDID 
+
+  const spaceDID = /** @type {`did:key:${string}`} */ (
+    decryptionCapability.with
+  )
+
+  const decryptionConfig = {
+    wallet,
+    decryptDelegation,
+    spaceDID,
   }
   const decryptedContent = await encryptedClient.retrieveAndDecryptFile(
     cid,
     decryptionConfig
   )
 
-  const reader = decryptedContent.getReader()
+  const reader = decryptedContent.stream.getReader()
   const decoder = new TextDecoder()
   let result = ''
 

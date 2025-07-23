@@ -57,7 +57,7 @@ export class EncryptedClient {
    *
    * @param {Type.AnyLink} cid - The link to the file to retrieve
    * @param {Type.DecryptionConfig} decryptionConfig - User-provided decryption config
-   * @returns {Promise<ReadableStream>} - The decrypted file
+   * @returns {Promise<Type.DecryptionResult>} - The decrypted file with metadata
    */
   async retrieveAndDecryptFile(cid, decryptionConfig) {
     return retrieveAndDecrypt(

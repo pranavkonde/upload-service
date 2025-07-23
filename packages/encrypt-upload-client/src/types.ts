@@ -27,6 +27,18 @@ export type { UploadOptions } from '@storacha/client/types'
 // Import SpaceDID for use in interfaces
 import type { SpaceDID } from '@storacha/capabilities/types'
 
+export interface FileMetadata {
+  name: string // Full filename with extension
+  type: string // MIME type (e.g., "application/pdf")
+  extension: string // File extension without dot (e.g., "pdf")
+  metadata?: Record<string, unknown> // Optional extensible metadata
+}
+
+export interface DecryptionResult {
+  stream: ReadableStream
+  fileMetadata?: FileMetadata // Extracted metadata
+}
+
 export interface EncryptedClient {
   encryptAndUploadFile(
     file: BlobLike,
@@ -36,7 +48,7 @@ export interface EncryptedClient {
   retrieveAndDecryptFile(
     cid: AnyLink,
     decryptionConfig: DecryptionConfig
-  ): Promise<ReadableStream>
+  ): Promise<DecryptionResult>
 }
 
 export type EncryptedClientOptions = {
@@ -124,6 +136,11 @@ export interface EncryptionConfig {
    * The keyring of the KMS key to use for encryption
    */
   keyring?: string
+
+  /**
+   * File metadata to embed in encrypted file
+   */
+  fileMetadata?: FileMetadata
 }
 
 export interface DecryptionConfig {

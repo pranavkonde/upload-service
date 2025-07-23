@@ -121,7 +121,7 @@ export class KMSCryptoAdapter {
    */
   async decryptSymmetricKey(encryptedKey, configs) {
     // Step 1: Validate configs
-    const {  decryptionConfig, metadata, issuer } = configs
+    const { decryptionConfig, metadata, issuer } = configs
     if (metadata.strategy !== 'kms') {
       throw new Error('KMSCryptoAdapter can only handle KMS metadata')
     }
@@ -180,7 +180,10 @@ export class KMSCryptoAdapter {
     // Step 2: Handle the result
     if (result.out.error) {
       // Only show the error message, not the full error object with stack trace
-      const errorMessage = result.out.error.message || result.out.error.name || 'KMS decryption failed'
+      const errorMessage =
+        result.out.error.message ||
+        result.out.error.name ||
+        'KMS decryption failed'
       throw new Error(errorMessage)
     }
 
@@ -291,7 +294,10 @@ export class KMSCryptoAdapter {
     // Step 2: Handle the result
     if (setupResult.out.error) {
       // Only show the error message, not the full error object with stack trace to avoid leaking information
-      const errorMessage = setupResult.out.error.message || setupResult.out.error.name || 'Encryption setup failed'
+      const errorMessage =
+        setupResult.out.error.message ||
+        setupResult.out.error.name ||
+        'Encryption setup failed'
       throw new Error(errorMessage)
     }
 
